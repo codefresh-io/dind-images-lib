@@ -1,0 +1,6 @@
+codefresh/cf-container-logger:0.0.18
+codefresh/cf-docker-puller:v2
+alpine:latest
+codefresh/cf-git-cloner:v3
+codefresh/cf-docker-builder:v10
+codefresh/cf-docker-pusher:v2
