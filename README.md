@@ -7,7 +7,7 @@ So each codefresh/dind image can mount it to /var/lib/docker and avoid to pull a
 
 ### How it works
 dind-images-lib docker container is built FROM docker:dind 
-- `dockerd -g ${DOCKER_LIB_ETALON_DIR}`
+- `dockerd --data-root ${DOCKER_LIB_ETALON_DIR}`
 - for each image listed in `./images` we do `docker pull `
 - stoping dockerd
 
