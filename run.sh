@@ -144,7 +144,7 @@ do
         for ii in $(find ${DIND_IMAGES_LIBS_DIR}/ -mindepth 1 -maxdepth 1 -type d -name "${LIB_DIR_PREFIX}*" )
         do
           if [[ "${ii}" =~ ${LIB_DIR_PREFIX}([[:digit:]]*$) ]]; then
-             LIB_DIR_NUMBER=${BASH_REMATCH[1]}
+             LIB_DIR_NUMBER=$(expr ${BASH_REMATCH[1]} + 0 )
              if (( LIB_DIR_NUMBER > DESIRED_DOCKER_LIB_NUMBER )); then
                 echo -e "\n   -- $(date) -- Deleting extra image lib dir ${ii}"
                 mv ${ii} ${ii}.delete && \
