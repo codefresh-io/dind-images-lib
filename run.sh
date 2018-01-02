@@ -1,5 +1,6 @@
 #!/bin/bash
 #
+DIR=$(dirname $0)
 BASE_DIR=/dind
 DIND_IMAGES_LIB_ETALON_DIR=${BASE_DIR}/images-lib-etalon
 mkdir -p ${DIND_IMAGES_LIB_ETALON_DIR}
@@ -11,7 +12,7 @@ RECREATE_ETALON=${RECREATE_ETALON:-""}
 DESIRED_DOCKER_LIB_NUMBER=${DESIRED_DOCKER_LIB_NUMBER:-15}
 MIN_DOCKER_LIB_NUMBER=${MIN_DOCKER_LIB_NUMBER:-10}
 
-SYNC_INTERVAL=${SYNC_INTERVAL:60}
+SYNC_INTERVAL=${SYNC_INTERVAL:-60}
 
 IMAGES_PULL_LIST=${DIR}/images-pull-list
 IMAGES_DELETE_LIST=${DIR}/images-delete-list
@@ -111,7 +112,7 @@ do
           echo -e "\n    -- $(date) -- Syncing ${DEST_DIR}"
           rm -rf ${DEST_DIR_TMP}
           mv ${DEST_DIR} ${DEST_DIR_TMP} && \
-          rsync -a ${DIND_IMAGES_LIB_ETALON_DIR}/ ${DEST_DIR_TMP}/ && \
+          rsync -a --delete ${DIND_IMAGES_LIB_ETALON_DIR}/ ${DEST_DIR_TMP}/ && \
           mv ${DEST_DIR_TMP} ${DEST_DIR}
         fi
       fi
