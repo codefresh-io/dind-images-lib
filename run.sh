@@ -117,45 +117,43 @@ do
         fi
       fi
     done
-    RSYNC_EXISTING=0
 
-    # Do nothing if there are more than MIN_DOCKER_LIB_NUMBER images lib directories
     if (( DOCKER_LIB_CNT >= MIN_DOCKER_LIB_NUMBER )); then
-       echo "There are already ${DOCKER_LIB_CNT} images lib directories >= MIN_DOCKER_LIB_NUMBER=${MIN_DOCKER_LIB_NUMBER} "
-       echo "Sleeping ${SYNC_INTERVAL} "
-       sleep ${SYNC_INTERVAL}
-       continue
+        # Do nothing if there are more than MIN_DOCKER_LIB_NUMBER images lib directories
+        echo "There are already ${DOCKER_LIB_CNT} images lib directories >= MIN_DOCKER_LIB_NUMBER=${MIN_DOCKER_LIB_NUMBER} "
+    else
+        # Creating missing images lib directories to get to DESIRED_DOCKER_LIB_NUMBER
+        for ii in $(seq -w ${DESIRED_DOCKER_LIB_NUMBER})
+        do
+          DEST_DIR=${DIND_IMAGES_LIBS_DIR}/${LIB_DIR_PREFIX}${ii}
+          DEST_DIR_TMP=${DEST_DIR}.tmp
+
+          if [[ ! -d ${DEST_DIR} ]]; then
+            echo -e "\n   -- $(date) -- Creating image lib dir ${DEST_DIR}"
+            rm -rf ${DEST_DIR_TMP}
+            mkdir -p ${DEST_DIR_TMP} && \
+            cp -a ${DIND_IMAGES_LIB_ETALON_DIR}/ ${DEST_DIR_TMP}/ && \
+            mv ${DEST_DIR_TMP} ${DEST_DIR} && \
+            echo -e "       $(date) - Successfully created ${DEST_DIR}"
+          fi
+        done
     fi
 
-    # Creating missing images lib directories to get to DESIRED_DOCKER_LIB_NUMBER
-    for ii in $(seq -w ${DESIRED_DOCKER_LIB_NUMBER})
-    do
-      DEST_DIR=${DIND_IMAGES_LIBS_DIR}/${LIB_DIR_PREFIX}${ii}
-      DEST_DIR_TMP=${DEST_DIR}.tmp
-
-      if [[ ! -d ${DEST_DIR} ]]; then
-        echo -e "\n   -- $(date) -- Creating image lib dir ${DEST_DIR}"
-        rm -rf ${DEST_DIR_TMP}
-        mkdir -p ${DEST_DIR_TMP} && \
-        cp -a ${DIND_IMAGES_LIB_ETALON_DIR}/ ${DEST_DIR_TMP}/ && \
-        mv ${DEST_DIR_TMP} ${DEST_DIR} && \
-        echo -e "       $(date) - Successfully created ${DEST_DIR}"
-      fi
-    done
-
-    # Deleting extra image lib directories
-    for ii in $(find ${DIND_IMAGES_LIBS_DIR}/ -type d -name "${LIB_DIR_PREFIX}*" )
-    do
-      if [[ "${ii}" =~ ${LIB_DIR_PREFIX}([[:digit:]]*$) ]]; then
-         LIB_DIR_NUMBER=${BASH_REMATCH[1]}
-         if (( LIB_DIR_NUMBER > DESIRED_DOCKER_LIB_NUMBER )); then
-            echo "\n   -- $(date) -- Deleting extra image lib dir ${ii}"
-            mv ${ii} ${ii}.delete && \
-            rm -rf ${ii}.delete
-         fi
-      fi
-    done
-
+    # Deleting extra image lib directories on new start
+    if [[ ${RSYNC_EXISTING} == "1" ]]; then
+        for ii in $(find ${DIND_IMAGES_LIBS_DIR}/ -mindepth 1 -maxdepth 1 -type d -name "${LIB_DIR_PREFIX}*" )
+        do
+          if [[ "${ii}" =~ ${LIB_DIR_PREFIX}([[:digit:]]*$) ]]; then
+             LIB_DIR_NUMBER=${BASH_REMATCH[1]}
+             if (( LIB_DIR_NUMBER > DESIRED_DOCKER_LIB_NUMBER )); then
+                echo -e "\n   -- $(date) -- Deleting extra image lib dir ${ii}"
+                mv ${ii} ${ii}.delete && \
+                rm -rf ${ii}.delete
+             fi
+          fi
+        done
+    fi
+    RSYNC_EXISTING=0
     echo "Sleeping ${SYNC_INTERVAL} "
     sleep ${SYNC_INTERVAL}
 done
