@@ -117,6 +117,7 @@ do
         fi
       fi
     done
+    RSYNC_EXISTING=0
 
     # Do nothing if there are more than MIN_DOCKER_LIB_NUMBER images lib directories
     if (( DOCKER_LIB_CNT >= MIN_DOCKER_LIB_NUMBER )); then
@@ -155,12 +156,9 @@ do
       fi
     done
 
-    RSYNC_EXISTING=0
     echo "Sleeping ${SYNC_INTERVAL} "
     sleep ${SYNC_INTERVAL}
 done
-
-
 
 
 
