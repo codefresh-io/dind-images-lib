@@ -119,7 +119,7 @@ rsync_images_libs(){
           echo -e "\n    -- $(date) -- Syncing ${DEST_DIR}"
           rm -rf ${DEST_DIR_TMP}
           mv ${DEST_DIR} ${DEST_DIR_TMP} && \
-          rsync -a --delete ${DIND_IMAGES_LIB_ETALON_DIR}/ ${DEST_DIR_TMP}/ && \
+          rsync -aW --no-compress --delete ${DIND_IMAGES_LIB_ETALON_DIR}/ ${DEST_DIR_TMP}/ && \
           mv ${DEST_DIR_TMP} ${DEST_DIR}
       fi
     done
