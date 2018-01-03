@@ -19,6 +19,23 @@ IMAGES_DELETE_LIST=${DIR}/images-delete-list
 
 DOCKERD_PARAMS=${DOCKERD_PARAMS:-'--storage-driver=overlay --storage-opt=[overlay.override_kernel_check=1]'}
 
+debug(){
+  if [[ -n "${DEBUG}" &&  ${DEBUG} == "1" ]]; then
+    echo -e $1
+  fi
+}
+debug_trap(){
+  # Just switch debug on/off on SIGUSR1
+  if [[ -z "${DEBUG}" ]]; then
+     echo "debug_trap: Switching DEBUG ON"
+     DEBUG="1"
+  else
+     echo "debug_trap: Switching DEBUG OFF"
+     unset DEBUG
+  fi
+}
+trap debug_trap SIGUSR1
+
 sighup_trap(){
    echo -e "\n ############## $(date) - SIGHUP received ####################"
    create_etalon
@@ -27,13 +44,15 @@ sighup_trap(){
 }
 trap sighup_trap SIGHUP
 
-sigusr1_trap(){
-   echo -e "\n ############## $(date) - SIGUSR1 received ####################"
+sigusr2_trap(){
+   echo -e "\n ############## $(date) - SIGUSR2 received ####################"
 
    echo "    set RECREATE_ETALON=1 and call sighup_trap"
    RECREATE_ETALON="1" sighup_trap
 }
-trap sigusr1_trap SIGUSR1
+trap sigusr2_trap SIGUSR2
+
+
 
 create_etalon(){
     echo -e "---- Creating etalon image lib dir"
@@ -145,7 +164,7 @@ do
 
     if (( DOCKER_LIB_CNT >= MIN_DOCKER_LIB_NUMBER )); then
         # Do nothing if there are more than MIN_DOCKER_LIB_NUMBER images lib directories
-        echo "There are already ${DOCKER_LIB_CNT} images lib directories >= MIN_DOCKER_LIB_NUMBER=${MIN_DOCKER_LIB_NUMBER} "
+        debug "There are already ${DOCKER_LIB_CNT} images lib directories >= MIN_DOCKER_LIB_NUMBER=${MIN_DOCKER_LIB_NUMBER} "
     else
         # Creating missing images lib directories to get to DESIRED_DOCKER_LIB_NUMBER
         for ii in $(seq -w ${DESIRED_DOCKER_LIB_NUMBER})
@@ -164,7 +183,7 @@ do
         done
     fi
 
-    echo "Sleeping ${SYNC_INTERVAL} "
+    debug "Sleeping ${SYNC_INTERVAL} "
     sleep ${SYNC_INTERVAL}
 done
 
