@@ -2,6 +2,7 @@
 #
 DIR=$(dirname $0)
 BASE_DIR=/dind
+LOCK_FILE=${BASE_DIR}/run.lock
 DIND_IMAGES_LIB_ETALON_DIR=${BASE_DIR}/images-lib-etalon
 DIND_IMAGES_LIB_ETALON_SAVE=${BASE_DIR}/images-lib-etalon.save.tar
 mkdir -p ${DIND_IMAGES_LIB_ETALON_DIR}
@@ -41,6 +42,7 @@ sigterm_trap(){
   echo -e "\n ############## $(date) - SIGTERM received ####################"
   export EXIT=1
   pkill sleep
+  rm -fv ${LOCK_FILE}
 }
 trap sigterm_trap SIGTERM
 
@@ -159,6 +161,9 @@ create_etalon(){
         echo -e "\n-------  $(date) \nDeleting images from IMAGES_DELETE_LIST = ${IMAGES_DELETE_LIST} "
         cat ${IMAGES_DELETE_LIST} | while read image
         do
+          if [[ "${image}" =~ ^# ]]; then
+            continue
+          fi
           echo "    Deleting image ${image} "
           docker -H ${DOCKER_HOST} rmi -f "${image}"
         done
@@ -242,6 +247,12 @@ delete_extra_images_libs(){
 }
 
 echo "Entering $0 at $(date) "
+
+while [[ -f ${LOCK_FILE} ]]
+do
+  echo "Another instance is running - ${LOCK_FILE} exists"
+  sleep 10
+done
 
 create_etalon
 sync_images_libs

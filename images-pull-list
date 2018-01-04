@@ -5,7 +5,7 @@ codefresh/cf-git-cloner:v3
 codefresh/cf-docker-builder:v10
 codefresh/cf-docker-pusher:v2
 node:8.8.0-alpine
-codefresh/node-tester-image:8.8.0
+#codefresh/node-tester-image:8.8.0
 golang:1.9
 node:9.2.0-alpine
 
