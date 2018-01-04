@@ -42,7 +42,6 @@ sigterm_trap(){
   echo -e "\n ############## $(date) - SIGTERM received ####################"
   export EXIT=1
   pkill sleep
-  rm -fv ${LOCK_FILE}
 }
 trap sigterm_trap SIGTERM
 
@@ -254,8 +253,10 @@ echo "Entering $0 at $(date) "
 [[ -f ${LOCK_FILE} ]] && echo "Waiting for another instance to stop - ${LOCK_FILE} exists"
 while [[ -f ${LOCK_FILE} ]]
 do
-  sleep 5
+  sleep 1
 done
+
+date +%s > ${LOCK_FILE}
 
 create_etalon
 sync_images_libs
@@ -309,9 +310,8 @@ do
     sleep ${SYNC_INTERVAL}
 done
 
-
-
-
+echo "$(date) - removing lock file ${LOCK_FILE} "
+rm -fv ${LOCK_FILE}
 
 
 
