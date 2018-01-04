@@ -71,7 +71,7 @@ start_docker_on_data_root(){
     dockerd --data-root=${DOCKERD_DATA_ROOT} --pidfile=${DOCKERD_PID_FILE} --host=${DOCKER_HOST} $DOCKERD_PARAMS <&- &
 
     local CNT=0
-    while ! test -f ${DOCKERD_PID_FILE} || test -z "$(cat ${DOCKERD_PID_FILE})" || ! docker ps
+    while ! test -f ${DOCKERD_PID_FILE} || test -z "$(cat ${DOCKERD_PID_FILE})" || ! docker -H ${DOCKER_HOST} ps
     do
       echo "      $(date) - Waiting for docker to start"
       sleep 2
@@ -96,7 +96,7 @@ kill_docker_by_pid(){
     kill ${DOCKER_PID}
     echo "Waiting for dockerd to exit ..."
     local CNT=0
-    while ps -p ${DOCKER_PID}
+    while ( pstree -p ${DOCKER_PID} | grep dockerd )
     do
        (( CNT++ ))
        echo ".... dockerd is still running - $(date)"
@@ -158,12 +158,12 @@ create_etalon(){
 
     echo -e "\n-------  $(date)  \nPulling images from IMAGES_PULL_LIST = ${IMAGES_PULL_LIST} "
     local IMAGES_PULL_SAVE=""
-    cat ${IMAGES_PULL_LIST} | while read image
+    while read image
     do
       echo "Pulling image ${image} "
       docker -H ${DOCKER_HOST} pull "${image}" && \
       IMAGES_PULL_SAVE="${IMAGES_PULL_SAVE} ${image}"
-    done
+    done < ${IMAGES_PULL_LIST}
 
     echo -e "\n     --- $(date) - docker save -o ${DIND_IMAGES_LIB_ETALON_SAVE} ${IMAGES_PULL_SAVE}"
     docker -H ${DOCKER_HOST} save -o ${DIND_IMAGES_LIB_ETALON_SAVE} ${IMAGES_PULL_SAVE}
