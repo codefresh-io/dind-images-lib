@@ -173,6 +173,9 @@ create_etalon(){
     local IMAGES_PULL_SAVE=""
     while read image
     do
+      if [[ "${image}" =~ ^# ]]; then
+        continue
+      fi
       echo "Pulling image ${image} "
       docker -H ${DOCKER_HOST} pull "${image}" && \
       IMAGES_PULL_SAVE="${IMAGES_PULL_SAVE} ${image}"
@@ -248,7 +251,7 @@ delete_extra_images_libs(){
 
 echo "Entering $0 at $(date) "
 
-echo "Waiting for another instance to stop - checking ${LOCK_FILE} exists"
+[[ -f ${LOCK_FILE} ]] && echo "Waiting for another instance to stop - ${LOCK_FILE} exists"
 while [[ -f ${LOCK_FILE} ]]
 do
   sleep 5
