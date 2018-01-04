@@ -37,6 +37,13 @@ debug_trap(){
 }
 trap debug_trap SIGUSR1
 
+sigterm_trap(){
+  echo -e "\n ############## $(date) - SIGTERM received ####################"
+  export EXIT=1
+  pkill sleep
+}
+trap sigterm_trap SIGTERM
+
 sighup_trap(){
    echo -e "\n ############## $(date) - SIGHUP received ####################"
    create_etalon
@@ -211,6 +218,10 @@ sync_images_libs(){
           load_images_lib ${DEST_DIR_TMP} && \
           mv ${DEST_DIR_TMP} ${DEST_DIR}
       fi
+      if [[ -n "${EXIT}" ]]; then
+        echo "Exiting sync_images_libs - EXIT=${EXIT} ..."
+        break
+      fi
     done
 }
 
@@ -238,7 +249,7 @@ ensure_no_docker_running
 
 echo -e "\n------- $(date) \nStarting to synchronize images lib directories ${DIND_IMAGES_LIBS_DIR}/ with etalon"
 
-while true
+while [[ -z "${EXIT}" ]]
 do
     # Counting existing directories of image-lib, rsync on first run
     DOCKER_LIB_CNT=0
@@ -270,6 +281,11 @@ do
             ensure_no_docker_running && \
             mv ${DEST_DIR_TMP} ${DEST_DIR} && \
             echo -e "       $(date) - Successfully created ${DEST_DIR}"
+          fi
+
+          if [[ -n "${EXIT}" ]]; then
+            echo "Exiting Creating missing images lib directories - EXIT=${EXIT} ..."
+            break
           fi
         done
     fi
