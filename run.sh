@@ -248,10 +248,10 @@ delete_extra_images_libs(){
 
 echo "Entering $0 at $(date) "
 
+echo "Waiting for another instance to stop - checking ${LOCK_FILE} exists"
 while [[ -f ${LOCK_FILE} ]]
 do
-  echo "Another instance is running - ${LOCK_FILE} exists"
-  sleep 10
+  sleep 5
 done
 
 create_etalon
