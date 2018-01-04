@@ -46,6 +46,7 @@ trap sigterm_trap SIGTERM
 
 sighup_trap(){
    echo -e "\n ############## $(date) - SIGHUP received ####################"
+   ensure_no_docker_running
    create_etalon
    sync_images_libs
    delete_extra_images_libs
@@ -123,7 +124,7 @@ ensure_no_docker_running(){
     do
        CNT=$(expr ${CNT} '+' 1)
        echo ".... old dockerd is still running - $(date)"
-       if [[ ${CNT} -ge 10 ]]; then
+       if [[ ${CNT} -ge 120 ]]; then
          echo "Killing old dockerd"
          pkill -9 docker
          break
