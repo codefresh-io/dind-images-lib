@@ -46,6 +46,7 @@ sigterm_trap(){
 
   echo "killing MONITOR_PID ${MONITOR_PID}"
   kill $MONITOR_PID
+
 }
 trap sigterm_trap SIGTERM
 
@@ -99,7 +100,7 @@ start_docker_on_data_root(){
         return 1
       fi
     done
-    echo "       Successfully started dockerd with --data-root ${DIND_IMAGES_LIB_ETALON_DIR} --pidfile ${DOCKERD_PID_FILE} "
+    echo "       Successfully started dockerd with --data-root ${DOCKERD_DATA_ROOT} --pidfile ${DOCKERD_PID_FILE} "
 }
 
 kill_docker_by_pid(){
