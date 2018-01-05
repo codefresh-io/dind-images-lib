@@ -21,7 +21,7 @@ get_dind_images_lib_count(){
     local LABELS="desired_images_lib_count=\"${DESIRED_IMAGES_LIB_COUNT}\",min_images_lib_count=\"${MIN_IMAGES_LIB_COUNT}\",sync_interval=\"${SYNC_INTERVAL}\""
 
     local IMAGES_LIB_CNT=0
-    for ii in $(seq -w ${DESIRED_DOCKER_LIB_NUMBER})
+    for ii in $(seq -w ${DESIRED_IMAGES_LIB_COUNT})
     do
       DEST_DIR=${DIND_IMAGES_LIBS_DIR}/${LIB_DIR_PREFIX}${ii}
       if [[ -d ${DEST_DIR} ]]; then
