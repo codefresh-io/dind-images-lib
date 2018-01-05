@@ -212,7 +212,8 @@ load_images_lib(){
     local DOCKER_PID=$(cat ${DOCKER_PID_FILE})
     local DOCKER_HOST="unix://${DOCKER_SOCK_FILE}"
 
-    docker -H ${DOCKER_HOST} load < ${DIND_IMAGES_LIB_ETALON_SAVE}
+    docker -H ${DOCKER_HOST} load < ${DIND_IMAGES_LIB_ETALON_SAVE} && \
+    cp -fv ${IMAGES_PULL_LIST} ${IMAGES_LIB_DIR}/
 
     kill_docker_by_pid ${DOCKER_PID}
 }
@@ -227,6 +228,12 @@ sync_images_libs(){
 
       if [[ -d ${DEST_DIR} ]]; then
           echo -e "\n    -- $(date) -- Syncing ${DEST_DIR}"
+          CURRENT_IMAGES_PULL_LIST=${DEST_DIR}/$(basename ${IMAGES_PULL_LIST})
+          if [[ -f ${CURRENT_IMAGES_PULL_LIST} ]]; then
+             diff ${IMAGES_PULL_LIST} ${CURRENT_IMAGES_PULL_LIST} && \
+             echo "No need to sync, IMAGES_PULL_LIST is up-to-date" && \
+             continue
+          fi
           rm -rf ${DEST_DIR_TMP}
           mv ${DEST_DIR} ${DEST_DIR_TMP} && \
           load_images_lib ${DEST_DIR_TMP} && \
