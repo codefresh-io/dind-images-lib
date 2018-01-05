@@ -1,18 +1,19 @@
 #!/bin/bash
 #
 DIR=$(dirname $0)
-BASE_DIR=/dind
+source ${DIR}/config
+BASE_DIR=${BASE_DIR:-"/dind"}
 LOCK_FILE=${BASE_DIR}/run.lock
-DIND_IMAGES_LIB_ETALON_DIR=${BASE_DIR}/images-lib-etalon
-DIND_IMAGES_LIB_ETALON_SAVE=${BASE_DIR}/images-lib-etalon.save.tar
+DIND_IMAGES_LIB_ETALON_DIR=${DIND_IMAGES_LIB_ETALON_DIR:-${BASE_DIR}/images-lib-etalon}
+DIND_IMAGES_LIB_ETALON_SAVE=${DIND_IMAGES_LIB_ETALON_SAVE:-${BASE_DIR}/images-lib-etalon.save.tar}
 mkdir -p ${DIND_IMAGES_LIB_ETALON_DIR}
 
-DIND_IMAGES_LIBS_DIR=${BASE_DIR}/images-libs
-LIB_DIR_PREFIX="lib-"
+DIND_IMAGES_LIBS_DIR=${DIND_IMAGES_LIBS_DIR:-"${BASE_DIR}/images-libs"}
+LIB_DIR_PREFIX=${LIB_DIR_PREFIX:-"lib-"}
 
 RECREATE_ETALON=${RECREATE_ETALON:-""}
-DESIRED_DOCKER_LIB_NUMBER=${DESIRED_DOCKER_LIB_NUMBER:-15}
-MIN_DOCKER_LIB_NUMBER=${MIN_DOCKER_LIB_NUMBER:-10}
+DESIRED_IMAGES_LIB_COUNT=${DESIRED_IMAGES_LIB_COUNT:-15}
+MIN_IMAGES_LIB_COUNT=${MIN_IMAGES_LIB_COUNT:-10}
 
 SYNC_INTERVAL=${SYNC_INTERVAL:-60}
 
@@ -42,11 +43,15 @@ sigterm_trap(){
   echo -e "\n ############## $(date) - SIGTERM received ####################"
   export EXIT=1
   pkill sleep
+
+  echo "killing MONITOR_PID ${MONITOR_PID}"
+  kill $MONITOR_PID
 }
 trap sigterm_trap SIGTERM
 
 sighup_trap(){
    echo -e "\n ############## $(date) - SIGHUP received ####################"
+   source ${DIR}/config
    ensure_no_docker_running
    create_etalon
    sync_images_libs
@@ -214,7 +219,7 @@ load_images_lib(){
 sync_images_libs(){
     local DEST_DIR
     local DEST_DIR_TMP
-    for ii in $(seq -w ${DESIRED_DOCKER_LIB_NUMBER})
+    for ii in $(seq -w ${DESIRED_IMAGES_LIB_COUNT})
     do
       DEST_DIR=${DIND_IMAGES_LIBS_DIR}/${LIB_DIR_PREFIX}${ii}
       DEST_DIR_TMP=${DEST_DIR}.tmp
@@ -239,7 +244,7 @@ delete_extra_images_libs(){
     do
       if [[ "${ii}" =~ ${LIB_DIR_PREFIX}([[:digit:]]*$) ]]; then
          LIB_DIR_NUMBER=$(expr ${BASH_REMATCH[1]} + 0 )
-         if (( LIB_DIR_NUMBER > DESIRED_DOCKER_LIB_NUMBER )); then
+         if (( LIB_DIR_NUMBER > DESIRED_IMAGES_LIB_COUNT )); then
             echo -e "\n   -- $(date) -- Deleting extra image lib dir ${ii}"
             mv ${ii} ${ii}.delete && \
             rm -rf ${ii}.delete
@@ -258,6 +263,10 @@ done
 
 date +%s > ${LOCK_FILE}
 
+# Starting monitor
+${DIR}/monitor/start.sh  <&- &
+MONITOR_PID=$!
+
 create_etalon
 sync_images_libs
 delete_extra_images_libs
@@ -269,7 +278,7 @@ while [[ -z "${EXIT}" ]]
 do
     # Counting existing directories of image-lib, rsync on first run
     DOCKER_LIB_CNT=0
-    for ii in $(seq -w ${DESIRED_DOCKER_LIB_NUMBER})
+    for ii in $(seq -w ${DESIRED_IMAGES_LIB_COUNT})
     do
       DEST_DIR=${DIND_IMAGES_LIBS_DIR}/${LIB_DIR_PREFIX}${ii}
       DEST_DIR_TMP=${DEST_DIR}.tmp
@@ -279,12 +288,12 @@ do
       fi
     done
 
-    if (( DOCKER_LIB_CNT >= MIN_DOCKER_LIB_NUMBER )); then
-        # Do nothing if there are more than MIN_DOCKER_LIB_NUMBER images lib directories
-        debug "There are already ${DOCKER_LIB_CNT} images lib directories >= MIN_DOCKER_LIB_NUMBER=${MIN_DOCKER_LIB_NUMBER} "
+    if (( DOCKER_LIB_CNT >= MIN_IMAGES_LIB_COUNT )); then
+        # Do nothing if there are more than MIN_IMAGES_LIB_COUNT images lib directories
+        debug "There are already ${DOCKER_LIB_CNT} images lib directories >= MIN_IMAGES_LIB_COUNT=${MIN_IMAGES_LIB_COUNT} "
     else
-        # Creating missing images lib directories to get to DESIRED_DOCKER_LIB_NUMBER
-        for ii in $(seq -w ${DESIRED_DOCKER_LIB_NUMBER})
+        # Creating missing images lib directories to get to DESIRED_IMAGES_LIB_COUNT
+        for ii in $(seq -w ${DESIRED_IMAGES_LIB_COUNT})
         do
           DEST_DIR=${DIND_IMAGES_LIBS_DIR}/${LIB_DIR_PREFIX}${ii}
           DEST_DIR_TMP=${DEST_DIR}.tmp
@@ -312,10 +321,3 @@ done
 
 echo "$(date) - removing lock file ${LOCK_FILE} "
 rm -fv ${LOCK_FILE}
-
-
-
-
-
-
-
