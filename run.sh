@@ -149,6 +149,12 @@ create_etalon(){
       rm -fv ${DIND_IMAGES_LIB_ETALON_SAVE}
     fi
 
+    local CURRENT_IMAGES_PULL_LIST=${DIND_IMAGES_LIB_ETALON_DIR}/$(basename ${IMAGES_PULL_LIST})
+    if [[ -f ${CURRENT_IMAGES_PULL_LIST} && -f ${DIND_IMAGES_LIB_ETALON_SAVE} ]]; then
+       diff ${IMAGES_PULL_LIST} ${CURRENT_IMAGES_PULL_LIST} && \
+       echo "No need to sync, IMAGES_PULL_LIST is up-to-date" && \
+       return 0
+    fi
     local DOCKERD_NUM=${RANDOM}
     local DOCKER_PID_FILE=/var/run/docker-${DOCKERD_NUM}.pid
     local DOCKER_SOCK_FILE=/var/run/docker-${DOCKERD_NUM}.sock
@@ -188,8 +194,15 @@ create_etalon(){
 
     echo -e "\n     --- $(date) - docker save -o ${DIND_IMAGES_LIB_ETALON_SAVE} ${IMAGES_PULL_SAVE}"
     docker -H ${DOCKER_HOST} save -o ${DIND_IMAGES_LIB_ETALON_SAVE} ${IMAGES_PULL_SAVE}
+    local EXIT_CODE=$?
+    echo "     docker save completed with status ${EXIT_CODE}"
+    if [[ ${EXIT_CODE} == 0 ]]; then
+      cp -fv ${IMAGES_PULL_LIST} ${DIND_IMAGES_LIB_ETALON_DIR}/
+    fi
 
     kill_docker_by_pid ${DOCKER_PID}
+
+    return ${EXIT_CODE}
 }
 
 load_images_lib(){
@@ -212,8 +225,13 @@ load_images_lib(){
     local DOCKER_PID=$(cat ${DOCKER_PID_FILE})
     local DOCKER_HOST="unix://${DOCKER_SOCK_FILE}"
 
-    docker -H ${DOCKER_HOST} load < ${DIND_IMAGES_LIB_ETALON_SAVE} && \
-    cp -fv ${IMAGES_PULL_LIST} ${IMAGES_LIB_DIR}/
+    echo -e "\n     --- $(date) - docker -H ${DOCKER_HOST} load < ${DIND_IMAGES_LIB_ETALON_SAVE}"
+    docker -H ${DOCKER_HOST} load < ${DIND_IMAGES_LIB_ETALON_SAVE}
+    local EXIT_CODE=$?
+    echo "     docker load completed with status ${EXIT_CODE}"
+    if [[ ${EXIT_CODE} == 0 ]]; then
+      cp -fv ${IMAGES_PULL_LIST} ${IMAGES_LIB_DIR}/
+    fi
 
     kill_docker_by_pid ${DOCKER_PID}
 }
@@ -221,14 +239,15 @@ load_images_lib(){
 sync_images_libs(){
     local DEST_DIR
     local DEST_DIR_TMP
+    local CURRENT_IMAGES_PULL_LIST
     for ii in $(seq -w ${DESIRED_IMAGES_LIB_COUNT})
     do
       DEST_DIR=${DIND_IMAGES_LIBS_DIR}/${LIB_DIR_PREFIX}${ii}
       DEST_DIR_TMP=${DEST_DIR}.tmp
-
+      CURRENT_IMAGES_PULL_LIST=${DEST_DIR}/$(basename ${IMAGES_PULL_LIST})
       if [[ -d ${DEST_DIR} ]]; then
           echo -e "\n    -- $(date) -- Syncing ${DEST_DIR}"
-          CURRENT_IMAGES_PULL_LIST=${DEST_DIR}/$(basename ${IMAGES_PULL_LIST})
+
           if [[ -f ${CURRENT_IMAGES_PULL_LIST} ]]; then
              diff ${IMAGES_PULL_LIST} ${CURRENT_IMAGES_PULL_LIST} && \
              echo "No need to sync, IMAGES_PULL_LIST is up-to-date" && \
