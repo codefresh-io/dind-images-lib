@@ -168,6 +168,19 @@ create_etalon(){
     local DOCKER_HOST="unix://${DOCKER_SOCK_FILE}"
     echo "Docker daemon has been started with DOCKER_PID = ${DOCKER_PID} and DOCKER_HOST="unix://${DOCKER_SOCK_FILE}""
 
+    #Waiting until docker-hub dns available - on new node start it takes time
+    local CNT=0
+    while ! docker -H ${DOCKER_HOST} pull hello-world
+    do
+      echo "      $(date) - Retry to pull hello-world until docker-hub is available ..."
+      sleep 5
+      (( CNT++ ))
+      if (( CNT > 120 )); then
+        echo "Error: failed to connect to docker-hub after 10 min - restarting pod"
+        exit 1
+      fi
+    done
+
     if [[ -f "${IMAGES_DELETE_LIST}" ]]; then
         echo -e "\n-------  $(date) \nDeleting images from IMAGES_DELETE_LIST = ${IMAGES_DELETE_LIST} "
         cat ${IMAGES_DELETE_LIST} | while read image
