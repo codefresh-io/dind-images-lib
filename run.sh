@@ -20,7 +20,7 @@ SYNC_INTERVAL=${SYNC_INTERVAL:-60}
 IMAGES_PULL_LIST=${DIR}/images-pull-list
 IMAGES_DELETE_LIST=${DIR}/images-delete-list
 
-DOCKERD_PARAMS=${DOCKERD_PARAMS:-'--storage-driver=overlay --storage-opt=[overlay.override_kernel_check=1]'}
+DOCKERD_PARAMS=${DOCKERD_PARAMS:-'--storage-driver=overlay --storage-opt=[overlay.override_kernel_check=1] --registry-mirror http://localhost:5000 --insecure-registry localhost:5000'}
 
 debug(){
   if [[ -n "${DEBUG}" &&  ${DEBUG} == "1" ]]; then
@@ -54,7 +54,7 @@ sighup_trap(){
    echo -e "\n ############## $(date) - SIGHUP received ####################"
    source ${DIR}/config
    ensure_no_docker_running
-   create_etalon
+#   create_etalon
    sync_images_libs
    delete_extra_images_libs
    ensure_no_docker_running
@@ -238,13 +238,40 @@ load_images_lib(){
     local DOCKER_PID=$(cat ${DOCKER_PID_FILE})
     local DOCKER_HOST="unix://${DOCKER_SOCK_FILE}"
 
-    echo -e "\n     --- $(date) - docker -H ${DOCKER_HOST} load < ${DIND_IMAGES_LIB_ETALON_SAVE}"
-    docker -H ${DOCKER_HOST} load < ${DIND_IMAGES_LIB_ETALON_SAVE}
-    local EXIT_CODE=$?
-    echo "     docker load completed with status ${EXIT_CODE}"
-    if [[ ${EXIT_CODE} == 0 ]]; then
+    if [[ -f "${IMAGES_DELETE_LIST}" ]]; then
+        echo -e "\n-------  $(date) \nDeleting images from IMAGES_DELETE_LIST = ${IMAGES_DELETE_LIST} "
+        cat ${IMAGES_DELETE_LIST} | while read image
+        do
+          if [[ "${image}" =~ ^# ]]; then
+            continue
+          fi
+          echo "    Deleting image ${image} "
+          docker -H ${DOCKER_HOST} rmi -f "${image}"
+        done
+    fi
+
+    echo -e "\n-------  $(date)  \nPulling images from IMAGES_PULL_LIST = ${IMAGES_PULL_LIST} "
+
+    local ERROR_CNT=0
+    while read image
+    do
+      if [[ "${image}" =~ ^# ]]; then
+        continue
+      fi
+      echo "   $(date) - Pulling image ${image} "
+      docker -H ${DOCKER_HOST} pull "${image}" || (( ERROR_CNT++ ))
+    done < ${IMAGES_PULL_LIST}
+    if [[ ${ERROR_CNT} == 0 ]]; then
       cp -fv ${IMAGES_PULL_LIST} ${IMAGES_LIB_DIR}/
     fi
+
+#    echo -e "\n     --- $(date) - docker -H ${DOCKER_HOST} load < ${DIND_IMAGES_LIB_ETALON_SAVE}"
+#    docker -H ${DOCKER_HOST} load < ${DIND_IMAGES_LIB_ETALON_SAVE}
+#    local EXIT_CODE=$?
+#    echo "     docker load completed with status ${EXIT_CODE}"
+#    if [[ ${EXIT_CODE} == 0 ]]; then
+#      cp -fv ${IMAGES_PULL_LIST} ${IMAGES_LIB_DIR}/
+#    fi
 
     kill_docker_by_pid ${DOCKER_PID}
 }
@@ -307,7 +334,7 @@ date +%s > ${LOCK_FILE}
 ${DIR}/monitor/start.sh  <&- &
 MONITOR_PID=$!
 
-create_etalon
+# create_etalon
 sync_images_libs
 delete_extra_images_libs
 ensure_no_docker_running
